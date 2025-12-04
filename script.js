@@ -1,8 +1,9 @@
 // Note: This code is partly inspired by the “Global Temperature Trends” example on ObservableHQ. https://observablehq.com/@d3/global-temperature-trends
 // The overall D3 structure (CSV loading, scales, axes, plotting circles) and color scaling was adapted from that example.
-// ChatGPT has been used to help write this code, especially for:
-// - Adding interactivity
-// - Handling data parsing and fallback logic
+// ChatGPT was used to help write this code, especially for:
+// - Adding interactivity: tooltip, zoom, reset, dropdown
+// - Handling data parsing from CSV
+
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,9 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let jobs = [];
   let svg, zoomBehavior;
 
-  const fallbackJobs = ["AI Research Scientist", "AI Software Engineer", "Data Scientist"];
-
-  // Daten laden
+  // loading data
   d3.csv("ai_job_dataset.csv", d3.autoType).then(raw => {
     if (!raw || !raw.length) return;
     const jobKey = Object.keys(raw[0]).find(k => k.toLowerCase().includes("title")) || "job_title";
@@ -31,9 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
     jobs = Array.from(new Set(dataAll.map(d => d.job))).sort();
     fillDropdown(jobSelect, jobs, "AI Research Scientist");
     drawPlot();
-  }).catch(() => {
-    fillDropdown(jobSelect, fallbackJobs, "AI Research Scientist");
-    drawPlot();
+  }).catch(error => {
+    console.error("Error loading CSV:", error);
+    chart.html("Failed to load data.");
   });
 
   jobSelect.addEventListener("change", drawPlot);
@@ -75,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Skalen
+    // scales
     const x = d3.scaleLinear()
       .domain(d3.extent(data, d => d.years))
       .range([0, innerW])
@@ -93,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .domain([minSalary, maxSalary])
       .range(["lightblue", "darkblue"]);
 
-    // Achsen
+    // axis
     const xAxisG = g.append("g")
       .attr("transform", `translate(0,${innerH})`)
       .call(d3.axisBottom(x));
@@ -101,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const yAxisG = g.append("g")
       .call(d3.axisLeft(y));
 
-    // X-Achsenbeschriftung
+    // x
     svg.append("text")
       .attr("x", margin.left + innerW / 2)
       .attr("y", height - 10)
@@ -109,16 +108,16 @@ document.addEventListener("DOMContentLoaded", () => {
       .style("font-weight", "bold")
       .text("Years of Experience");
 
-    // Y-Achsenbeschriftung
+    // y
     svg.append("text")
       .attr("transform", `rotate(-90)`)
       .attr("x", -margin.top - innerH / 2)
-      .attr("y", 15)
+      .attr("y", 20)
       .attr("text-anchor", "middle")
       .style("font-weight", "bold")
       .text("Salary (USD)");
 
-    // Punkte
+    // points
     const points = g.selectAll("circle")
       .data(data)
       .join("circle")
@@ -138,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .on("mouseout", () => tooltip.style("display", "none"));
 
-    // Zoom
+    // zoom
     zoomBehavior = d3.zoom()
       .scaleExtent([1, 5])
       .translateExtent([[-100, -100], [innerW + 100, innerH + 100]])
@@ -154,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     svg.call(zoomBehavior);
   }
 
-  // Reset Zoom
+  // reset zoom
   resetBtn.addEventListener("click", () => {
     if (svg && zoomBehavior) {
       svg.transition().duration(300).call(zoomBehavior.transform, d3.zoomIdentity);
