@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => init());
 
+
 function init() {
   const jobSelect = document.getElementById("jobSelect");
   const jobSearch = document.getElementById("jobSearch");
